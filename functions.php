@@ -77,3 +77,15 @@ function wpwiki_image_output_format( $formats ) {
 add_filter( 'image_editor_output_format', 'wpwiki_image_output_format' );
 
 add_action('wp_enqueue_scripts',static function(){wp_enqueue_script('wpwiki-layout',get_template_directory_uri().'/assets/wiki-layout.js',[],filemtime(get_template_directory().'/assets/wiki-layout.js'),true);});
+
+/** Additional responsive sources for article images. */
+function wpwiki_responsive_image_sizes() {
+    add_image_size( 'wpwiki-small', 180, 0, false );
+    add_image_size( 'wpwiki-medium', 360, 0, false );
+    add_image_size( 'wpwiki-large', 672, 0, false );
+}
+add_action( 'after_setup_theme', 'wpwiki_responsive_image_sizes' );
+function wpwiki_responsive_webp_quality( $quality, $mime, $size = array() ) {
+    return 'image/webp' === $mime && ! empty( $size['width'] ) && $size['width'] <= 672 ? 52 : $quality;
+}
+add_filter( 'wp_editor_set_quality', 'wpwiki_responsive_webp_quality', 10, 3 );
