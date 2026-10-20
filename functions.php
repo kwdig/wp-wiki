@@ -89,3 +89,31 @@ function wpwiki_responsive_webp_quality( $quality, $mime, $size = array() ) {
     return 'image/webp' === $mime && ! empty( $size['width'] ) && $size['width'] <= 672 ? 52 : $quality;
 }
 add_filter( 'wp_editor_set_quality', 'wpwiki_responsive_webp_quality', 10, 3 );
+/** Bound the transfer size of complex responsive WebP images; keep originals intact. */
+function wpwiki_compress_responsive_webp( $metadata, $attachment_id ) {
+    if ( empty( $metadata['sizes'] ) ) { return $metadata; }
+    $source = get_attached_file( $attachment_id );
+    if ( ! $source || ! is_file( $source ) ) { return $metadata; }
+    foreach ( array( 'wpwiki-small', 'wpwiki-medium', 'wpwiki-large' ) as $key ) {
+        if ( empty( $metadata['sizes'][$key] ) ) { continue; }
+        $size = $metadata['sizes'][$key];
+        if ( 'image/webp' !== ( $size['mime-type'] ?? '' ) ) { continue; }
+        $path = dirname( $source ) . '/' . $size['file'];
+        $budget = max( 8192, (int) ( $size['width'] * $size['height'] * 0.16 ) );
+        if ( ! is_file( $path ) || filesize( $path ) <= $budget ) { continue; }
+        foreach ( array( 46, 40, 34 ) as $quality ) {
+            $editor = wp_get_image_editor( $source );
+            if ( is_wp_error( $editor ) ) { break; }
+            $resized = $editor->resize( $size['width'], $size['height'], false );
+            if ( is_wp_error( $resized ) || is_wp_error( $editor->set_quality( $quality ) ) ) { break; }
+            $saved = $editor->save( $path, 'image/webp' );
+            if ( is_wp_error( $saved ) ) { break; }
+            clearstatcache( true, $path );
+            $metadata['sizes'][$key]['filesize'] = filesize( $path );
+            if ( $metadata['sizes'][$key]['filesize'] <= $budget ) { break; }
+        }
+    }
+    return $metadata;
+}
+add_filter( 'wp_generate_attachment_metadata', 'wpwiki_compress_responsive_webp', 20, 2 );
+
