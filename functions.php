@@ -117,3 +117,11 @@ function wpwiki_compress_responsive_webp( $metadata, $attachment_id ) {
 }
 add_filter( 'wp_generate_attachment_metadata', 'wpwiki_compress_responsive_webp', 20, 2 );
 
+
+
+/** Keep theme controls off the render-blocking path, including WordPress 6.0. */
+function wpwiki_defer_control_scripts( $tag, $handle ) {
+    if ( ! in_array( $handle, array( 'wpwiki-layout', 'wpwiki-navigation' ), true ) ) { return $tag; }
+    return preg_replace( '/<script\b(?=[^>]*\bsrc=)(?![^>]*\bdefer\b)/i', '<script defer', $tag, 1 );
+}
+add_filter( 'script_loader_tag', 'wpwiki_defer_control_scripts', 10, 2 );
