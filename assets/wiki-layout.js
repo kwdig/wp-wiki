@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded',()=>{const b=document.querySelector('.wiki-sidebar-toggle'),s=document.querySelector('#wiki-sidebar');if(b&&s)b.addEventListener('click',()=>{const open=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',String(open));s.classList.toggle('is-open',open);});});
